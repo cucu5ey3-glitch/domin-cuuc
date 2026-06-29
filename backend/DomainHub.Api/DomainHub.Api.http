@@ -1,0 +1,6 @@
+@DomainHub.Api_HostAddress = http://localhost:5283
+
+GET {{DomainHub.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
