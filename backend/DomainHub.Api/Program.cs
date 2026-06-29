@@ -12,34 +12,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// SQLite
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite("Data Source=domainhub.db"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // إنشاء قاعدة البيانات وإنشاء الأدمن
-var temp = builder.Services.BuildServiceProvider();
-
-using (var scope = temp.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-    db.Database.Migrate();
-
-    if (!db.Users.Any(x => x.Role == "Admin"))
-    {
-        db.Users.Add(new User
-        {
-            FullName = "System Admin",
-            Email = "admin@domainhub.com",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
-            Role = "Admin",
-            EmailConfirmed = true,
-            CreatedAt = DateTime.UtcNow
-        });
-
-        db.SaveChanges();
-    }
-}
 
 // JWT
 var key = Encoding.UTF8.GetBytes("THIS_IS_A_SUPER_SECRET_KEY_FOR_DOMAINHUB_2026");
@@ -60,8 +36,8 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
 });
-
-builder.Services.AddAuthorization();
+builder
+.Services.AddAuthorization();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -75,6 +51,27 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    db.Database.Migrate();
+
+    if (!db.Users.Any(x => x.Role == "Admin"))
+    {
+        db.Users.Add(new User
+        {
+            FullName = "System Admin",
+            Email = "admin@domainhub.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+            Role = "Admin",
+            EmailConfirmed = true,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        db.SaveChanges();
+    }
+}
 
 app.UseSwagger();
 app.UseSwaggerUI();
